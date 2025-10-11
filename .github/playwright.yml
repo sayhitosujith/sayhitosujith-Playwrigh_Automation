@@ -28,4 +28,19 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Run Playwright tests
-        run: npx playwright test
+        run: npx playwright test --reporter=html
+
+      - name: Upload Playwright HTML report
+        if: always()  # upload even if tests fail
+        uses: actions/upload-artifact@v3
+        with:
+          name: playwright-html-report
+          path: playwright-report/
+          retention-days: 7
+      - name: Upload Playwright Test Results
+        if: always()  # upload even if tests fail
+        uses: actions/upload-artifact@v3
+        with:
+          name: playwright-test-results
+          path: playwright-report/test-results/
+          retention-days: 7 
