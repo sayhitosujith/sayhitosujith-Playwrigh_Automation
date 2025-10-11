@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - master   # Include main if that's your default branch
   pull_request:
     branches:
       - master
@@ -14,16 +13,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 18
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
 
-    - name: Install dependencies
-      run: npm install
+      - name: Install dependencies
+        run: npm install
 
-    - name: Run Playwright tests
-      run: npx playwright test
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        run: npx playwright test
