@@ -43,7 +43,6 @@ test.describe('Naukri Profile Flow', () => {
       await expect(page.getByText('Logout')).toBeVisible();
       await page.getByText('Logout').click();
     });
-
     await context.close();
   });
 

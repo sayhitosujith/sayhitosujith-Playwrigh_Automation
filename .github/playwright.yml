@@ -8,6 +8,11 @@ on:
     branches:
       - master
 
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -30,17 +35,18 @@ jobs:
       - name: Run Playwright tests
         run: npx playwright test --reporter=html
 
-      - name: Upload Playwright HTML report
-        if: always()  # upload even if tests fail
+      - name: Upload HTML report artifact
+        if: always()
         uses: actions/upload-artifact@v3
         with:
           name: playwright-html-report
           path: playwright-report/
           retention-days: 7
-      - name: Upload Playwright Test Results
-        if: always()  # upload even if tests fail
-        uses: actions/upload-artifact@v3
+
+      - name: Deploy Playwright report to GitHub Pages
+        if: always()
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          name: playwright-test-results
-          path: playwright-report/test-results/
-          retention-days: 7 
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: playwright-report
