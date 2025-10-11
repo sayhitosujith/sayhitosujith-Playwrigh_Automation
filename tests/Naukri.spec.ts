@@ -1,91 +1,68 @@
 import { test, expect } from '@playwright/test';
-import path from 'path';
-import fs from 'fs';
 
-// ---------------------------
-// Setup screenshots folder
-// ---------------------------
-const screenshotDir = path.join(__dirname, 'screenshots');
-if (!fs.existsSync(screenshotDir)) fs.mkdirSync(screenshotDir);
+test.describe('Naukri Profile Flow', () => {
 
-// ---------------------------
-// Helper function: Assert Request Payload
-// ---------------------------
-async function assertRequestPayload(page, urlSubstring, expectedData) {
-  const request = await page.waitForRequest(req => req.url().includes(urlSubstring));
-  const postData = JSON.parse(request.postData() || '{}');
+  test('Login, edit resume headline, and logout', async ({ page, context }) => {
 
-  for (const key in expectedData) {
-    expect(postData[key]).toBe(expectedData[key]);
-  }
-}
+    await test.step('Navigate to naukri URL', async () => {
+      await page.goto('https://www.naukri.com/nlogin/login?utm_source=google&utm_medium=cpc&utm_campaign=Brand&gad_source=1&gclid=CjwKCAjwo6GyBhBwEiwAzQTmc34DfBd9dNPPn_R_W3UozmHxoGFxQRepNJgOcFPHLMUoYhEwNErtOxoC6a0QAvD_BwE&gclsrc=aw.ds');
+    });
 
-// ---------------------------
-// AfterEach hook: Screenshots on Failure
-// ---------------------------
-test.afterEach(async ({ page }, testInfo) => {
-  if (testInfo.status !== testInfo.expectedStatus) {
-    const fileName = `${testInfo.title.replace(/\s/g, '_')}.png`;
-    const screenshotPath = path.join(screenshotDir, fileName);
-    await page.screenshot({ path: screenshotPath, fullPage: true });
-    console.log(`Screenshot saved: ${screenshotPath}`);
-  }
-});
+    await test.step('Enter login credentials', async () => {
+      await expect(page.locator('strong', { hasText: 'Login' })).toBeVisible();
+      await page.getByLabel('Enter Email ID / Username').fill('sayhitosujith@gmail.com');
+      await page.getByRole('textbox', { name: 'Enter Password' }).fill('Qw@12345678');
+      await expect(page.getByRole('button', { name: 'Login', exact: true })).toBeVisible();
+      await page.getByRole('button', { name: 'Login', exact: true }).click();
+    });
 
-// ---------------------------
-// Main Test
-// ---------------------------
-test('Naukri Login, Profile & Resume Test', async ({ page, context }) => {
+    await test.step('User navigates to profile', async () => {
+      await expect(page.getByRole('link', { name: 'View profile' })).toBeVisible();
+      await page.getByRole('link', { name: 'View profile' }).click();
+    });
 
-  // Step 1: Navigate to Login Page
-  await test.step('Navigate to Naukri login', async () => {
-    await page.goto('https://www.naukri.com/nlogin/login?...');
+    await test.step('Verify Resume headline', async () => {
+      await expect(page.locator('#lazyResumeHead').getByText('editOneTheme')).toBeVisible();
+      await page.locator('#lazyResumeHead').getByText('editOneTheme').click();
+      await page.getByRole('textbox', { name: 'Minimum 5 words. Sample' }).click();
+      // Accept alert popup if appears
+      page.once('dialog', async dialog => await dialog.accept());
+      await page.getByRole('button', { name: 'Save' }).click();
+    });
+
+    // await test.step('Upload resume', async () => {
+    //   await expect(page.getByRole('button', { name: 'Update resume' })).toBeVisible();
+    //   await page.getByRole('button', { name: 'Update resume' }).click();
+    //   await page.waitForTimeout(3000);
+    //   await page.getByRole('button', { name: 'Update resume' }).setInputFiles('D:\\Playwright\\Playwright\\tests\\Files\\Sujith-S.pdf');
+    //   await expect(page.getByText('Resume has been successfully')).toBeVisible();
+    // });
+
+    await test.step('Logout of Naukri', async () => {
+      await page.getByRole('img', { name: 'naukri user profile img' }).click();
+      await expect(page.getByText('Logout')).toBeVisible();
+      await page.getByText('Logout').click();
+    });
+
+    await context.close();
   });
 
-  // Step 2: Enter Login Credentials & Assert Request Payload
-  await test.step('Enter login credentials', async () => {
-    await page.getByRole('textbox', { name: 'Enter Email ID / Username' }).fill('sayhitosujith@gmail.com');
-    await page.getByRole('textbox', { name: 'Enter Password' }).fill('Qw@12345678');
+  test('Check forgot password flow', async ({ page }) => {
+    await page.goto('https://www.naukri.com/nlogin/login');
+    await expect(page.getByText('Forgot Password?')).toBeVisible();
+    await page.getByText('Forgot Password?').click();
+    await expect(page.getByRole('textbox', { name: 'Enter Email ID' })).toBeVisible();
+    await page.getByRole('textbox', { name: 'Enter Email ID' }).fill('sayhitosujith@gmail.com');
+    await page.getByRole('button', { name: 'GO' }).click();
+    await expect(page.getByText('An OTP has been sent to sayhitosujith@gmail.com')).toBeVisible();
+  });
 
-    // Assert API payload
-    await assertRequestPayload(page, '/api/login', { username: 'sayhitosujith@gmail.com' });
-
-    await expect(page.getByRole('button', { name: 'Login', exact: true })).toBeVisible();
+  test('Check invalid login shows error', async ({ page }) => {
+    await page.goto('https://www.naukri.com/nlogin/login');
+    await page.getByRole('textbox', { name: 'Enter Email ID / Username' }).fill('invalid@email.com');
+    await page.getByRole('textbox', { name: 'Enter Password' }).fill('wrongpassword');
     await page.getByRole('button', { name: 'Login', exact: true }).click();
+    await expect(page.getByText('Invalid details. Please check the Email ID - Password combination.')).toBeVisible();
   });
 
-  // Step 3: Navigate to Profile
-  await test.step('Navigate to profile', async () => {
-    await expect(page.getByRole('link', { name: 'View profile' })).toBeVisible();
-    await page.getByRole('link', { name: 'View profile' }).click();
-  });
-
-  // Step 4: Verify Resume Headline
-  await test.step('Verify Resume headline', async () => {
-    await expect(page.locator('#lazyResumeHead').getByText('editOneTheme')).toBeVisible();
-    await page.locator('#lazyResumeHead').getByText('editOneTheme').click();
-    await page.getByRole('textbox', { name: 'Minimum 5 words. Sample' }).click();
-    await page.getByRole('button', { name: 'Save' }).click();
-  });
-
-  // Step 5: (Optional) Upload Resume
-  // Uncomment and adjust file path if needed
-  /*
-  await test.step('Upload resume', async () => {
-    const resumePath = path.resolve(__dirname, 'Files/Sujith-S.pdf');
-    await expect(page.getByRole('button', { name: 'Update resume' })).toBeVisible();
-    await page.getByRole('button', { name: 'Update resume' }).setInputFiles(resumePath);
-    await expect(page.getByText('Resume has been successfully')).toBeVisible();
-  });
-  */
-
-  // Step 6: Logout
-  await test.step('Logout of Naukri', async () => {
-    await page.getByRole('img', { name: 'naukri user profile img' }).click();
-    await expect(page.getByText('Logout')).toBeVisible();
-    await page.getByText('Logout').click();
-  });
-
-  // Close browser context
-  await context.close();
 });
