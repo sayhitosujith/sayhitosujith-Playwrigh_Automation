@@ -13,8 +13,8 @@ test('test', async ({ page, context }) => {
   //   await test.step('Network Interception', async () => {
   // page.on('request', req => console.log(req.url()));
   // page.on('response', res => console.log(res.url(), res.status()));  })
- await test.step('measure page performance or speed with Playwright', async () => {
-  })
+// await test.step('measure page performance or speed with Playwright', async () => {
+ // })
 
 
   await test.step('Enter login credentials', async () => {
