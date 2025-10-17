@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { LoginPage } from '../Pages/Login';
 
+// Define BASE_URL for Naukri
+const BASE_URL = process.env.NAUKRI_BASE_URL || 'https://www.naukri.com/nlogin/login';
+
 // Use environment variables for credentials
 const NAUKRI_EMAIL = process.env.NAUKRI_EMAIL || 'sayhitosujith@gmail.com';
 const NAUKRI_PASSWORD = process.env.NAUKRI_PASSWORD || 'Qw@12345678';
-
-// Define BASE_URL for Naukri
-const BASE_URL = process.env.NAUKRI_BASE_URL || 'https://www.naukri.com/nlogin/login';
 
 test('@smoke Naukri login and profile validation', async ({ page }) => {
 const loginPage = new LoginPage(page);
