@@ -65,7 +65,6 @@ await test.step('Upload resume', async () => {
 
 });
 
-  
 
   await test.step('Logout of Naukri', async () => {
     await page.getByRole('img', { name: 'naukri user profile img' }).click();
