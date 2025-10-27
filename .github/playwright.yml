@@ -8,8 +8,8 @@ on:
     branches:
       - master
   schedule:
-    # Run every 6 hours
-    - cron: "0 */6 * * *"
+    # Run every 1 hour
+    - cron: "0 */1 * * *"
 
 permissions:
   contents: write
