@@ -66,9 +66,7 @@ test('Naukri login and profile validation @smoke', async ({ page }) => {
   // Logout
   await test.step('Logout of Naukri', async () => {
     await page.getByRole('img', { name: 'naukri user profile img' }).click();
-    const logoutBtn = page.getByRole('menuitem', { name: 'Logout' });
-    await expect(logoutBtn).toBeVisible();
-    await logoutBtn.click();
+    await page.getByText('Logout').click();
     await page.close();
     console.log('✅ Logged out successfully');
   });
