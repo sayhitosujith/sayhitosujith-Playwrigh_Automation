@@ -8,7 +8,7 @@ on:
     branches:
       - master
   schedule:
-    - cron: "0 */1 * * *" # Run every 1 hour
+    - cron: "0 * * * *"  # runs every hour, on the hour (UTC)
 
 permissions:
   contents: write
@@ -16,39 +16,31 @@ permissions:
   id-token: write
 
 jobs:
-  test:
+  run-tests:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright browsers
+      - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
-      - name: Run Playwright tests
-        run: npx playwright test --reporter=html
+      - name: Run Naukri test
+        run: npx playwright test tests/naukri-login.spec.ts --project=chromium
 
-      - name: Upload HTML report artifact
+      - name: Upload Playwright report
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: playwright-html-report
+          name: playwright-report
           path: playwright-report/
-          retention-days: 7
-
-      - name: Deploy Playwright report to GitHub Pages
-        if: always()
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: playwright-report/
