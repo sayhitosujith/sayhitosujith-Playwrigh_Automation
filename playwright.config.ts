@@ -14,9 +14,8 @@ export default defineConfig({
     baseURL: process.env.BASE_URL || 'https://example.com',
   },
   projects: [
-    { name: 'Chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'Firefox', use: { ...devices['Desktop Firefox'] } },
-    { name: 'WebKit', use: { ...devices['Desktop Safari'] } },
+    // Default to the installed Google Chrome only
+    { name: 'Chrome', use: { ...devices['Desktop Chrome'], channel: 'chrome' } },
   ],
   
 });

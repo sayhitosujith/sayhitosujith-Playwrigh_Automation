@@ -1,7 +1,11 @@
 import { Given, When, Then } from "@cucumber/cucumber";
 import { expect } from "@playwright/test";
-import { LoginPage } from "../Pages/Login";
-import testData from "../Files/Test-data/userdata.json";
+import { LoginPage } from "../Pages/Login.js";
+import fs from 'fs';
+import path from 'path';
+
+const testDataPath = path.resolve(process.cwd(), 'Files', 'Test-data', 'userdata.json');
+const testData = JSON.parse(fs.readFileSync(testDataPath, 'utf8')) as { validusername: { email: string; password: string } };
 
 const env = process.env.ENV || "qa";
 const baseUrls: Record<string, string> = {

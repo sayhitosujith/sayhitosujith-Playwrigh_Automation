@@ -1,6 +1,7 @@
-import { test as base, Page } from '@playwright/test';
+import { test as base } from '@playwright/test';
+import type { Page } from 'playwright';
 import path from 'path';
-import { LoginPage } from '../Pages/Login';
+import { LoginPage } from '../Pages/Login.js';
 
 // Extend the base test with custom fixtures
 export const test = base.extend<{

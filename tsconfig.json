@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "NodeNext",
+    "lib": ["ES2020", "DOM"],
+    "moduleResolution": "NodeNext",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "types": ["playwright/test", "node"]
+  },
+  "include": [
+    "tests/**/*.ts",
+    "Pages/**/*.ts",
+    "tests/**/*.spec.ts",
+    "tests/**/*.ts",
+    "fixtures.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "playwright-report",
+    "test-results",
+    "screenshots"
+  ]
+}
