@@ -58,10 +58,11 @@ test('Naukri login and profile validation @smoke', async ({ page }: { page: impo
       return;
     }
 
-    // Correct file upload
-    const fileInput = await page.$('input[type="file"]');
-    if (!fileInput) throw new Error('File input not found');
-    await fileInput.setInputFiles('tests/Files/Sujith_Profile.pdf');
+  // Correct file upload
+  const fileInput = await page.$('input[type="file"]');
+  if (!fileInput) throw new Error('File input not found');
+  // Use resolved path to the repository's Files folder (Sujith-S.pdf)
+  await fileInput.setInputFiles(path.resolve(process.cwd(), 'Files', 'Sujith-S.pdf'));
 
     await expect(page.getByText('Resume has been successfully')).toBeVisible();
     console.log('✅ Resume uploaded successfully');

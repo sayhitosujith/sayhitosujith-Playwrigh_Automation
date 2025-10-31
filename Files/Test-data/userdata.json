@@ -2,5 +2,10 @@
   "validusername": {
     "email": "sayhitosujith@gmail.com",
     "password": "Qw@12345678"
-  }
+  },
+  "jobKeywords": [
+    "Automation Test Engineer",
+    "QA Engineer",
+    "Playwright Tester"
+  ]
 }

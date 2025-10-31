@@ -14,7 +14,7 @@ const baseUrls: Record<string, string> = {
 };
 const BASE_URL = process.env.NAUKRI_BASE_URL || baseUrls[env];
 
-test('Naukri login and profile validation @smoke', async ({ page }: { page: import('playwright').Page }) => {
+test('Naukri login, profile validation and job apply @regression', async ({ page }: { page: import('playwright').Page }) => {
   const loginPage = new LoginPage(page);
   const { validusername } = testData;
 
@@ -51,20 +51,61 @@ test('Naukri login and profile validation @smoke', async ({ page }: { page: impo
   });
 
   // Optional: Upload resume
-  const skipUpload = true; // set to false to enable upload
+  const skipUpload = true; // change to false if you want to upload
   await test.step('Upload resume', async () => {
     if (skipUpload) {
       console.log('Skipping Upload Resume step');
       return;
     }
 
-    // Correct file upload
     const fileInput = await page.$('input[type="file"]');
     if (!fileInput) throw new Error('File input not found');
-    await fileInput.setInputFiles('tests/Files/Sujith_Profile.pdf');
+    await fileInput.setInputFiles(path.resolve(process.cwd(), 'Files', 'Sujith-S.pdf'));
 
     await expect(page.getByText('Resume has been successfully')).toBeVisible();
     console.log('✅ Resume uploaded successfully');
+  });
+
+  // 🔹 Apply for Jobs
+  await test.step('Search and Apply for each job', async () => {
+    console.log('🔍 Navigating to job search page...');
+    await page.goto('https://www.naukri.com/jobs-in-india-?kxjobsearch=true');
+
+    // Example: apply for jobs with keyword "Automation Test Engineer"
+    const keyword = 'Automation Test Engineer';
+    await page.getByPlaceholder('Enter skills / designations / companies').fill(keyword);
+    await page.getByRole('button', { name: 'Search' }).click();
+    await page.waitForLoadState('networkidle');
+    console.log(`✅ Job search results loaded for "${keyword}"`);
+
+    // Loop through job cards (example selector)
+    const jobs = await page.$$('a.title.ellipsis');
+    console.log(`🔹 Found ${jobs.length} jobs`);
+
+    for (let i = 0; i < Math.min(jobs.length, 5); i++) {  // limit to 5 for safety
+      const job = jobs[i];
+      const jobTitle = await job.textContent();
+      console.log(`➡️ Applying for: ${jobTitle?.trim()}`);
+
+      // Open job in new tab
+      const [newPage] = await Promise.all([
+        page.context().waitForEvent('page'),
+        job.click({ button: 'middle' })
+      ]);
+
+      await newPage.waitForLoadState('domcontentloaded');
+
+      // Try clicking “Apply” button if available
+      const applyButton = await newPage.$('text=Apply');
+      if (applyButton) {
+        await applyButton.click();
+        console.log(`✅ Applied to: ${jobTitle?.trim()}`);
+      } else {
+        console.log(`⚠️ No apply button found for: ${jobTitle?.trim()}`);
+      }
+
+      await newPage.close();
+    }
   });
 
   // Logout

@@ -14,17 +14,54 @@ const testData = JSON.parse(fs.readFileSync(testDataPath, 'utf8')) as { validuse
 const KEYWORD = process.env.KEYWORD || 'SDET';
 const LOCATION = process.env.LOCATION || 'Bangalore';
 const MAX_APPLIES = Number(process.env.MAX_APPLIES || '3');
-const RESUME_PATH = process.env.RESUME_PATH || path.resolve(process.cwd(), 'tests', 'Files', 'Sujith_Profile.pdf');
+// default resume path (repo has the PDF in the top-level Files folder)
+const RESUME_PATH = process.env.RESUME_PATH || path.resolve(process.cwd(), 'Files', 'Sujith-S.pdf');
 const LIVE_APPLY = (process.env.LIVE_APPLY || 'false').toLowerCase() === 'true';
 
 // Base URL (login)
 const BASE_URL = process.env.NAUKRI_BASE_URL || 'https://www.naukri.com/nlogin/login';
 
+// Helpers
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function safeGoto(page: import('playwright').Page, url: string, opts: { waitUntil?: 'domcontentloaded' | 'load' | 'networkidle'; timeout?: number } = { waitUntil: 'domcontentloaded', timeout: 30000 }, retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      await page.goto(url, { waitUntil: opts.waitUntil || 'domcontentloaded', timeout: opts.timeout ?? 30000 });
+      return;
+    } catch (err) {
+      console.warn(`safeGoto attempt ${attempt + 1} failed for ${url}: ${(err as Error).message}`);
+      if (attempt < retries) await sleep(1000 + attempt * 500);
+      else throw err;
+    }
+  }
+}
+
+async function dismissOverlays(page: import('playwright').Page) {
+  // Common cookie/overlay selectors on large sites — best-effort closes
+  const overlaySelectors = [
+    'button:has-text("Accept"), button:has-text("I agree"), button:has-text("Got it")',
+    'button[aria-label="close"], button[aria-label="Close"], .close, .close-btn, .cookie-banner button',
+    'button:has-text("×"), button:has-text("✕")'
+  ];
+  for (const sel of overlaySelectors) {
+    try {
+      const loc = page.locator(sel);
+      if (await loc.count() > 0) {
+        await loc.first().click({ timeout: 2000 }).catch(() => {});
+      }
+    } catch {
+      // ignore
+    }
+  }
+}
+
 test.describe('Apply to Naukri jobs', () => {
   test('Apply to jobs (guarded) - Apply Naukri Live', async ({ page, context }) => {
     // 1. Navigate to Naukri login page
     await test.step('Navigate to Naukri login page', async () => {
-      await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
+      await safeGoto(page, BASE_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await dismissOverlays(page);
       console.log(`Opened ${BASE_URL}`);
     });
 
@@ -38,6 +75,7 @@ test.describe('Apply to Naukri jobs', () => {
       await loginPage.loginbutton.click();
       // prefer domcontentloaded to avoid long waits caused by background requests
       await page.waitForLoadState('domcontentloaded');
+      await dismissOverlays(page);
       console.log('Logged in (attempt).');
 
       const profile = page.getByRole('link', { name: /Profile|View profile|My Profile/i });
@@ -65,12 +103,12 @@ test.describe('Apply to Naukri jobs', () => {
         const fallbackUrl = `https://www.naukri.com/${encodeURIComponent(KEYWORD)}-jobs-in-${encodeURIComponent(LOCATION)}`;
         console.log(`Search button not found — navigating to fallback search url: ${fallbackUrl}`);
         try {
-          await page.goto(fallbackUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+          await safeGoto(page, fallbackUrl, { waitUntil: 'domcontentloaded', timeout: 45000 }, 2);
         } catch (navErr) {
           // Sometimes the site aborts navigation (ads/redirects). Try a safer fallback and continue.
           console.warn(`Fallback navigation failed: ${(navErr as Error).message}. Trying site root and continuing.`);
           try {
-            await page.goto('https://www.naukri.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await safeGoto(page, 'https://www.naukri.com', { waitUntil: 'domcontentloaded', timeout: 30000 }, 1);
           } catch (rootErr) {
             console.warn(`Navigation to site root also failed: ${(rootErr as Error).message}. Proceeding without search page.`);
           }
@@ -90,9 +128,10 @@ test.describe('Apply to Naukri jobs', () => {
     // 4. Collect job result links (up to MAX_APPLIES)
     const jobLinks: string[] = [];
     await test.step('Collect job result links', async () => {
-      const cardAnchors = page.locator('a.jobTuple__title, a[href*="/job-detail/"], a:has(.jobTuple__title)');
+      // try several patterns for job cards to maximize coverage
+      const cardAnchors = page.locator('a.jobTuple__title, a[href*="/job-detail/"], a:has(.jobTuple__title), .jobTuple, .jobCard a');
       if (await cardAnchors.count() === 0) {
-        const anchors = page.locator('a:has-text("Apply"), a[href*="/jobs/"], .jobCard a');
+        const anchors = page.locator('a:has-text("Apply"), a[href*="/jobs/"], .jobCard a, [data-job-id] a');
         for (let i = 0; i < Math.min(await anchors.count(), MAX_APPLIES * 3); i++) {
           const href = await anchors.nth(i).getAttribute('href');
           if (href) jobLinks.push(href);
@@ -114,6 +153,8 @@ test.describe('Apply to Naukri jobs', () => {
       jobLinks.length = 0;
       normalized.forEach(u => jobLinks.push(u));
       console.log(`Collected ${jobLinks.length} job links (max ${MAX_APPLIES})`);
+      // brief human-like pause before processing
+      await sleep(600 + Math.floor(Math.random() * 600));
       if (jobLinks.length === 0) console.warn('No job links collected — search selectors may need tuning.');
     });
 
@@ -209,6 +250,8 @@ test.describe('Apply to Naukri jobs', () => {
             try { await pageForJob.close(); } catch { /* ignore */ }
           }
         }
+        // human-like wait between jobs
+        await sleep(800 + Math.floor(Math.random() * 800));
       });
     }
 
@@ -228,6 +271,16 @@ test.describe('Apply to Naukri jobs', () => {
       results.forEach((r, idx) => {
         console.log(`${idx + 1}. ${r.url} -> ${r.status}${r.note ? ' (' + r.note + ')' : ''}`);
       });
+
+      // persist results to disk for audit
+      try {
+        const out = path.resolve(process.cwd(), 'test-results', `naukri-apply-results-${Date.now()}.json`);
+        fs.mkdirSync(path.dirname(out), { recursive: true });
+        fs.writeFileSync(out, JSON.stringify(results, null, 2), 'utf8');
+        console.log('Saved apply results to', out);
+      } catch (e) {
+        console.warn('Failed to save apply results:', (e as Error).message);
+      }
     });
   });
 });
